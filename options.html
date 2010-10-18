@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html>
 <head>
-	<title>Options for Google Mail Checker Plus</title>
+	<title>Options for Eve Mail Checker Plus</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
 	<link rel="stylesheet" type="text/css" media="screen" href="general.css" />
@@ -13,15 +13,14 @@
 <body onload="restore_options()">
 
 <div id="main">
-    <h1 class="title">Google Mail Checker Plus</h1>
+    <h1 class="title">Eve Mail Checker Plus</h1>
     <form>
     <table>
         <tr>
             <td style="background-color: #ffffff">                
                 <span class="top_right"><img src="img/icon_48.png"></span>
                 <h1>Options</h1>
-                <p>Please take a moment and configure the extension to fit your needs. If you have an account at a Google Apps domain, fill in the correct URL in the Account-section below.</p>
-                <p>For help and troubleshooting, please visit the <a href="http://chrome.desc.se/forum/viewforum.php?id=3" title="Visit the help and support forum" target="_blank"><strong>help and support forum</strong></a>!</p>
+                <p>Please take a moment and configure the extension to fit your needs.</p>
             </td>
         </tr>
         <tr>
@@ -35,11 +34,7 @@
 			<div id="content_0" class="content invisible">
 				<h2>General settings</h2>
 				<input type="checkbox" id="show_notification" onchange="requestUserPermission()" /> <label for="show_notification"><strong>Show desktop notifications</strong></label>  <a title="Enable this setting to show a notification when new mail arrives" style="cursor: help">?</a>
-				<br /><br /><input type="checkbox" id="archive_read" /> <label for="archive_read">Archive marks as read</label>  <a title="Enable this setting to mark a mail as read when you archive it" style="cursor: help">?</a>
-				<br /><input type="checkbox" id="showfull_read" /> <label for="showfull_read">Previewing marks as read</label>  <a title="Enable this setting to mark a mail as read when previewing it in the popup window" style="cursor: help">?</a>
-				<!--<br /><input type="checkbox" id="force_ssl" /> <label for="force_ssl">Always use SSL</label> <a title="Enable this setting to always use SSL when accessing Google Mail" style="cursor: help">?</a>!-->
 				<br /><input type="checkbox" id="open_tabs" /> <label for="open_tabs">Open compose in tab</label>  <a title="Enable this setting to open mail composing in a new tab instead of a new window (also applies to mailto-links)" style="cursor: help">?</a>
-				<br /><input type="checkbox" id="no_mailto" /> <label for="no_mailto">Ignore mailto-links</label> <a title="Enable this setting to ignore parsing of mailto-links and open them in your regular mail client instead" style="cursor: help">?</a>
 				<br /><input type="checkbox" id="sound_off" /> <label for="sound_off">Turn <strong>off</strong> notification sound</label> <a title="Disables notification sound when new mail arrives" style="cursor: help">?</a>
 				<br /><input type="checkbox" id="animate_off" /> <label for="animate_off">Turn <strong>off</strong> icon animation</label> <a title="Disables animation of the icon when there is new mail" style="cursor: help">?</a>
 				<br /><input type="checkbox" id="hide_count" /> <label for="hide_count">Hide unread mail count</label> <a title="Enable this setting to hide the unread count number from the browser action icon" style="cursor: help">?</a>
@@ -50,22 +45,9 @@
 					<select id="accounts"></select><br />
 					<a href="javascript:add_account()" title="Add a new account">Add</a> | <a href="javascript:remove_account()" title="Remove selected account">Remove</a>
 				</p>	
-				<input type="checkbox" id="check_gmail_off" /> <label for="check_gmail_off">Turn off regular Gmail checking</label> <a title="Enable this setting if you don't have an account at gmail.com" style="cursor: help">?</a>
-				<br /><input type="checkbox" id="check_all" onclick="toggleCheckBox('check_priority', this.checked)" /> <label for="check_all">Check all folders for unread mail</label> <a title="Enable this setting to check all folders, not only your inbox, for unread mail" style="cursor: help">?</a>
-				<br /><input type="checkbox" id="check_priority" onclick="toggleCheckBox('check_all', this.checked)" /> <label for="check_priority"><strong>Check priority mail</strong></label> <a title="Enable this setting to only check for unread priority mail" style="cursor: help">?</a>
-                <!--<br /><input type="checkbox" id="is_default" /> <label for="is_default">This is my default account</label> <a title="Your default account will be used when clicking on mailto-links" style="cursor: help">?</a>!-->
-				<!--<p>
-					<span><strong>Label whitelist</strong> <a title="Add all labels here that you want to check for new mail" style="cursor: help">?</a></span>
-					<select id="labels" multiple style="width: 100%"></select>
-					<span style="float: right; clear: both;"><a href="javascript:add_label()" title="Add new label to whitelist">Add</a> | <a href="javascript:remove_label()" title="Remove selected label from whitelist">Remove</a></span>
-				</p>!-->	
 				<br /><br />
 				Polling interval:  
 				<select id="poll">
-				    <option id="poll_15000" value="15000">15 seconds</option>
-				    <option id="poll_30000" value="30000">30 seconds</option>
-				    <option id="poll_60000" value="60000">1 minute</option>
-				    <option id="poll_300000" value="300000">5 minutes</option>
 				    <option id="poll_900000" value="900000">15 minutes</option>
 				    <option id="poll_1800000" value="1800000">30 minutes</option>
 				    <option id="poll_3600000" value="3600000">1 hour</option>
@@ -86,7 +68,6 @@
 				<select id="languages">
 				</select>
 				<a title="Select the language of the extension" style="cursor: help">?</a>
-				<p><a href="http://chrome.desc.se/forum/viewtopic.php?id=28" title="Help translate the extension" target="_blank">Missing your language?</a></p>
 			</div>
 			<div id="content_3" class="content invisible">
 				<h2>Icon selection settings</h2>
@@ -100,9 +81,6 @@
             </td>
         </tr>
     </table>
-    <span class="left">
-	<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=10581461" title="Donate via PayPal" target="_blank" style="border: 0"><img src="https://www.paypal.com/en_US/i/btn/btn_donate_SM.gif" alt="PayPal - The safer, easier way to pay online!"></a>
-   </span>
     <button onclick="save_options()" style="width: 130px;height: 30px; float: right; margin-top: 4px;">Save &amp; Reload</button>
     </form>
 </div>
