@@ -20,42 +20,11 @@ function MailAccount(settingsObj) {
    var requestTimeout = 10000;
    var openInTab = (localStorage["gc_open_tabs"] != null && localStorage["gc_open_tabs"] == "true");
    var archiveAsRead = (localStorage["gc_archive_read"] != null && localStorage["gc_archive_read"] == "true");
-   var mailURL = (localStorage["gc_force_ssl"] != null && localStorage["gc_force_ssl"] == "true") ? "https://" : "http://";
-   mailURL += "mail.google.com";
-
-   if (settingsObj.domain != null) {
-      // This is a GAFYD account
-      mailURL += "/a/" + settingsObj.domain + "/";
-   } else if (settingsObj.accountNr != null) {
-      // This is a Google account with multiple sessions activated
-      mailURL += "/mail/u/" + settingsObj.accountNr + "/";
-   } else {
-      // Standard one-session Gmail account
-      mailURL += "/mail/";
-   }
+   var mailURL = "http://apitest.eveonline.com/char/MailMessages.xml.aspx";
 
    var inboxLabel;
    var atomLabel;
    var unreadLabel;
-
-   if (localStorage["gc_check_all"] != null
-        && localStorage["gc_check_all"] == "true") {
-      // Check all labels for unread mail
-      inboxLabel = "#all";
-      unreadLabel = "#search/l:unread";
-      atomLabel = "unread";
-   } else if (localStorage["gc_check_priority"] != null
-        && localStorage["gc_check_priority"] == "true"
-        && settingsObj.domain == null) {
-      // Only check priority inbox
-      inboxLabel = "#mbox";
-      unreadLabel = "#mbox";
-      atomLabel = "important";
-   } else {
-      inboxLabel = "#inbox";
-      unreadLabel = "#inbox";
-      atomLabel = "";
-   }
 
    var mailArray = new Array();
    var newestMail;
@@ -80,9 +49,9 @@ function MailAccount(settingsObj) {
    function onGetInboxSuccess(data) {
       var foundNewMail = false;
       var xmlDocument = $(data);
-      var fullCount = xmlDocument.find('fullcount').text();
+      var fullCount = xmlDocument.find('message').length;
 
-      mailTitle = $(xmlDocument.find('title')[0]).text().replace("Gmail - ", "");
+      mailTitle = xmlDocument.find('message').attr("title");
       //newestMail = null;
       var newMailArray = new Array();
 
@@ -94,16 +63,16 @@ function MailAccount(settingsObj) {
       }
 
       // Parse xml data for each mail entry
-      xmlDocument.find('entry').each(function () {
-         var title = $(this).find('title').text();
-         var summary = $(this).find('summary').text();
-         var issued = $(this).find('issued').text();
+      xmlDocument.find('message').each(function () {
+         var title = $(this).attr('title');
+//         var summary = $(this).find('summary').text();
+         var issued = $(this).attr('sentDate');
          issued = (new Date()).setISO8601(issued);
-         var link = $(this).find('link').attr('href');
-         var id = link.replace(/.*message_id=(\d\w*).*/, "$1");
+//         var link = $(this).find('link').attr('href');
+//         var id = link.replace(/.*message_id=(\d\w*).*/, "$1");
 
-         var authorName = $(this).find('author').find('name').text();
-         var authorMail = $(this).find('author').find('mail').text();
+         var authorName = $(this).attr('senderID');
+//         var authorMail = $(this).find('author').find('mail').text();
 
          // Data checks
          if (authorName == null || authorName.length < 1)
@@ -166,7 +135,7 @@ function MailAccount(settingsObj) {
       if (foundNewMail) {
          handleSuccess(fullCount);
       } else {
-         logToConsole(mailURL + "feed/atom/" + atomLabel + " - No new mail found.");
+         logToConsole(mailURL + " - No new mail found.");
       }
    }
 
@@ -198,12 +167,12 @@ function MailAccount(settingsObj) {
    // Retreives inbox count and populates mail array
    function getInboxCount() {
       try {
-         logToConsole("requesting " + mailURL + "feed/atom/" + atomLabel);
+         logToConsole("requesting " + mailURL);
 
          $.ajax({
-            type: "GET",
+            type: "POST",
             dataType: "text",
-            url: mailURL + "feed/atom/" + atomLabel,
+            url: mailURL,
             timeout: requestTimeout,
             success: function (data) { onGetInboxSuccess(data); },
             error: function (xhr, status, err) { handleError(xhr, status, err); }
@@ -281,9 +250,8 @@ function MailAccount(settingsObj) {
          var threadid = postObj.threadid;
          var action = postObj.action;
 
-         var postURL = mailURL.replace("http:", "https:");
-         postURL += "h/" + Math.ceil(1000000 * Math.random()) + "/";
-         var postParams = "t=" + threadid + "&at=" + gmailAt + "&act=" + action;
+         var postURL = mailURL;
+         var postParams = "";
 
          logToConsole(postURL);
          logToConsole(postParams);
@@ -309,7 +277,7 @@ function MailAccount(settingsObj) {
 
    // Opens the basic HTML version of Gmail and fetches the Gmail_AT value needed for POST's
    function getAt(callback, tag) {
-      var getURL = mailURL + "h/" + Math.ceil(1000000 * Math.random()) + "/?ui=html&zy=c";
+      var getURL = mailURL;
       var gat_xhr = new XMLHttpRequest();
       gat_xhr.onreadystatechange = function () {
          if (this.readyState == 4 && this.status == 200) {
@@ -458,9 +426,8 @@ function MailAccount(settingsObj) {
          var reply = escape(replyObj.body);
          var callback = replyObj.callback;
 
-         var postURL = mailURL + "h/" + Math.ceil(1000000 * Math.random()) + "/" + "?v=b&qrt=n&fv=cv&rm=12553ee9085c11ca&at=xn3j33xxbkqkoyej1zgstnt6zkxb1c&pv=cv&th=12553ee9085c11ca&cs=qfnq";
-         var postParams = /*"v=b&qrt=n&fv=cv&rm=12553ee9085c11ca&at=xn3j33xxbkqkoyej1zgstnt6zkxb1c&pv=cv&th=12553ee9085c11ca&cs=qfnq" +
-					"&th=" + threadid + "&at=" + gmailAt +*/"body=" + reply;
+         var postURL = mailURL;
+         var postParams = "";
 
          logToConsole(postParams);
 
