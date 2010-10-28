@@ -52,6 +52,8 @@ function save_options() {
     for (var i in boolIdArray) {
         var id = boolIdArray[i];
         var element = document.getElementById(id);
+        if (!element)
+            continue;
         var value = element.checked;
         localStorage["gc_" + id] = value;
 
@@ -83,6 +85,7 @@ function save_options() {
     if (accounts.length > 0) {
         localStorage.setObject("gc_accounts", accounts);
     }
+
 
     var backgroundPage = chrome.extension.getBackgroundPage();
     backgroundPage.init();
@@ -116,6 +119,9 @@ function restore_options() {
     spawnIconRow("set5", "Alternative 2");
     spawnIconRow("set6", "Chromified Classic");
     spawnIconRow("set7", "Chromified Grey");
+    spawnIconRow("set12", "Eve 1");
+    spawnIconRow("set13", "Eve 2");
+    spawnIconRow("set14", "Eve 3");
 
     var iconRadios = document.forms[0].icon_set;
     var iconFound = false;
@@ -138,9 +144,11 @@ function restore_options() {
         }
     }
 
+/*
     if (localStorage["gc_poll"] != null) {
         document.getElementById("poll_" + localStorage["gc_poll"]).selected = true;
     }
+*/
 
     accounts = localStorage.getObject("gc_accounts");
     if (accounts == null) {
@@ -289,3 +297,4 @@ function toggleCheckBox(checkboxId, checked) {
       document.getElementById(checkboxId).checked = !checked;
    }
 }
+
