@@ -21,6 +21,9 @@ function MailAccount(settingsObj) {
    var openInTab = (localStorage["gc_open_tabs"] != null && localStorage["gc_open_tabs"] == "true");
    var archiveAsRead = (localStorage["gc_archive_read"] != null && localStorage["gc_archive_read"] == "true");
    var mailURL = "http://apitest.eveonline.com/char/MailMessages.xml.aspx";
+   var acctID = settingsObj.id;
+   var apiKey = settingsObj.key;
+   var charID = settingsObj.char;
 
    var inboxLabel;
    var atomLabel;
@@ -70,6 +73,7 @@ function MailAccount(settingsObj) {
          issued = (new Date()).setISO8601(issued);
 //         var link = $(this).find('link').attr('href');
 //         var id = link.replace(/.*message_id=(\d\w*).*/, "$1");
+         var id = $(this).attr('messageID');
 
          var authorName = $(this).attr('senderID');
 //         var authorMail = $(this).find('author').find('mail').text();
@@ -84,11 +88,11 @@ function MailAccount(settingsObj) {
          var mailObject = {
             "id": id,
             "title": title,
-            "summary": summary,
-            "link": link,
+//            "summary": summary,
+//            "link": link,
             "issued": issued,
             "authorName": authorName,
-            "authorMail": authorMail
+//            "authorMail": authorMail
          };
 
          var isNewMail = true;
@@ -167,12 +171,14 @@ function MailAccount(settingsObj) {
    // Retreives inbox count and populates mail array
    function getInboxCount() {
       try {
-         logToConsole("requesting " + mailURL);
+         var data = "userID="+acctID+"&apiKey="+apiKey+"&characterID="+charID;
+         logToConsole("requesting " + mailURL+ " with data ["+data+"]");
 
          $.ajax({
             type: "POST",
             dataType: "text",
             url: mailURL,
+            data: data,
             timeout: requestTimeout,
             success: function (data) { onGetInboxSuccess(data); },
             error: function (xhr, status, err) { handleError(xhr, status, err); }

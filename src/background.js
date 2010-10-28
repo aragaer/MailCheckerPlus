@@ -196,10 +196,10 @@ function reloadSettings_complete() {
     if (localStorage["gc_accounts"] != null) {
         var savedAccounts = eval(localStorage["gc_accounts"]);
         $.each(savedAccounts, function (i, savedAccount) {
-            if (savedAccount.domain == null)
+            if (savedAccount.id == null)
                 return;
 
-            var acc = new MailAccount({ domain: savedAccount.domain });
+            var acc = new MailAccount({ id: savedAccount.id, key:savedAccount.key, char:savedAccount.char });
             acc.onError = mailError;
             acc.onUpdate = mailUpdate;
             accounts.push(acc);

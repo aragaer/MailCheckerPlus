@@ -216,7 +216,7 @@ function add_account() {
     var newacc_char_name = newacc_char;
 
 //    document.getElementById("check_gmail_off").checked = "true";
-    accounts.push({ "id": newacc_id, "key":newacc_key, "char_id": newacc_char, "char_name": newacc_char_name });
+    accounts.push({ "id": newacc_id, "key":newacc_key, "char": newacc_char, "char_name": newacc_char_name });
 
     var acc_sel = document.getElementById("accounts");
     acc_sel.add(new Option(newacc_char_name), null);
