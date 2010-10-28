@@ -117,9 +117,9 @@ function restore_options() {
     spawnIconRow("set5", "Alternative 2");
     spawnIconRow("set6", "Chromified Classic");
     spawnIconRow("set7", "Chromified Grey");
-    spawnIconRow("set12", "Eve 1");
-    spawnIconRow("set13", "Eve 2");
-    spawnIconRow("set14", "Eve 3");
+    spawnIconRow("set_eve1", "Eve 1");
+    spawnIconRow("set_eve2", "Eve 2");
+    spawnIconRow("set_eve3", "Eve 3");
 
     var iconRadios = document.forms[0].icon_set;
     var iconFound = false;
@@ -163,9 +163,9 @@ function restore_options() {
 
     var acc_sel = document.getElementById("accounts");
     for (var i in accounts) {
-        if (accounts[i] == null || accounts[i].domain == null)
+        if (accounts[i] == null || accounts[i].char_name == null)
             break;
-        acc_sel.add(new Option(accounts[i].domain), null);
+        acc_sel.add(new Option(accounts[i].char_name), null);
     }
 
     //chrome.extension.getBackgroundPage().getLabels("https://mail.google.com/mail/", loadLabels);
@@ -200,19 +200,27 @@ function spawnIconRow(value, description) {
 }
 
 function add_account() {
-    var newacc_domain = prompt("Enter the domain name for your GAFYD account." +
-        "\n\nDo not enter anything but the domain name!" +
-        "\n\nIf your mail adress is <yourname@yourdomain.com>, simply enter \"yourdomain.com\""
-        , "yourdomain.com");
+    var newacc_id = prompt("Enter your account ID", "");
+    if (newacc_id == null || newacc_id == "")
+        return;
 
-    if (newacc_domain != null && newacc_domain != "" && newacc_domain != "yourdomain.com") {
-        document.getElementById("check_gmail_off").checked = "true";
-        accounts.push({ "domain": newacc_domain });
+    var newacc_key = prompt("Enter your account FULL API key", "");
+    if (newacc_key == null || newacc_key == "")
+        return;
 
-        var acc_sel = document.getElementById("accounts");
-        acc_sel.add(new Option(newacc_domain), null);
-        //acc_sel.size = accounts.length + 1;        
-    }
+    // TODO: pick from list!
+    var newacc_char = prompt("Enter your character id", "");
+    if (newacc_char == null || newacc_char == "")
+        return;
+
+    var newacc_char_name = newacc_char;
+
+//    document.getElementById("check_gmail_off").checked = "true";
+    accounts.push({ "id": newacc_id, "key":newacc_key, "char_id": newacc_char, "char_name": newacc_char_name });
+
+    var acc_sel = document.getElementById("accounts");
+    acc_sel.add(new Option(newacc_char_name), null);
+    //acc_sel.size = accounts.length + 1;
 }
 
 function remove_account() {
@@ -223,8 +231,8 @@ function remove_account() {
         acc_todel = acc_sel.options[acc_sel.selectedIndex];
 
         for (var i in accounts) {
-            if (accounts[i].domain == acc_todel.text) {
-                console.log("removing account: " + accounts[i].domain);
+            if (accounts[i].char_name == acc_todel.text) {
+                console.log("removing account: " + accounts[i].char_name);
                 accounts.splice(i, 1);
                 break;
             }
