@@ -14,13 +14,16 @@ String.prototype.htmlEntities = function () {
    return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
+var baseURL = "http://apitest.eveonline.com/";
+
 function MailAccount(settingsObj) {
    // Check global settings
    var pollInterval = localStorage["gc_poll"];
    var requestTimeout = 10000;
    var openInTab = (localStorage["gc_open_tabs"] != null && localStorage["gc_open_tabs"] == "true");
    var archiveAsRead = (localStorage["gc_archive_read"] != null && localStorage["gc_archive_read"] == "true");
-   var mailURL = "http://apitest.eveonline.com/char/MailMessages.xml.aspx";
+   var mailURL = baseURL+"char/MailMessages.xml.aspx";
+   var charNameURL = baseURL+"eve/CharacterName.xml.aspx";
    var acctID = settingsObj.id;
    var apiKey = settingsObj.key;
    var charID = settingsObj.char;
@@ -39,6 +42,8 @@ function MailAccount(settingsObj) {
    var isStopped = false;
    var requestTimer;
 
+   var lists = {};
+
    this.onUpdate;
    this.onError;
    this.isDefault;
@@ -52,9 +57,9 @@ function MailAccount(settingsObj) {
    function onGetInboxSuccess(data) {
       var foundNewMail = false;
       var xmlDocument = $(data);
-      var fullCount = xmlDocument.find('message').length;
+      var fullCount = xmlDocument.find('message[read="0"]').length;
 
-      mailTitle = xmlDocument.find('message').attr("title");
+      mailTitle = xmlDocument.find('rowset').attr('name');//xmlDocument.find('message').attr("title");
       //newestMail = null;
       var newMailArray = new Array();
 
@@ -75,7 +80,20 @@ function MailAccount(settingsObj) {
 //         var id = link.replace(/.*message_id=(\d\w*).*/, "$1");
          var id = $(this).attr('messageID');
 
-         var authorName = $(this).attr('senderID');
+         var authorID = $(this).attr('senderID');
+	 var authorName;
+
+         $.ajax({
+            type: "POST",
+            dataType: "text",
+            url: charNameURL,
+            data: "ids="+authorID,
+	    async: false,
+            timeout: requestTimeout,
+            success: function (data) { authorName = $(data).find("row[name]").attr("name"); },
+            error: function (xhr, status, err) { handleError(xhr, status, err); }
+         });
+
 //         var authorMail = $(this).find('author').find('mail').text();
 
          // Data checks
