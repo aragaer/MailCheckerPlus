@@ -14,7 +14,7 @@ String.prototype.htmlEntities = function () {
    return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
-var baseURL = "http://apitest.eveonline.com/";
+var baseURL = "http://api.eveonline.com/";
 
 function MailAccount(settingsObj) {
    // Check global settings
@@ -71,7 +71,7 @@ function MailAccount(settingsObj) {
       }
 
       // Parse xml data for each mail entry
-      xmlDocument.find('message').each(function () {
+      xmlDocument.find('message[read="0"]').each(function () {
          var title = $(this).attr('title');
 //         var summary = $(this).find('summary').text();
          var issued = $(this).attr('sentDate');
