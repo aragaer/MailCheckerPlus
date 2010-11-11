@@ -15,6 +15,7 @@ String.prototype.htmlEntities = function () {
 };
 
 var baseURL = "http://api.eveonline.com/";
+var gateURL = "https://gate.eveonline.com/";
 
 function MailAccount(settingsObj) {
    // Check global settings
@@ -35,6 +36,8 @@ function MailAccount(settingsObj) {
    var mailArray = new Array();
    var newestMail;
    var unreadCount = -1;
+   var latestID = localStorage["gc_latest_"+settingsObj.char] || -1;
+   var unread = (localStorage["gc_unread_"+settingsObj.char] || "").split(',');
    var mailTitle;
    var mailAddress;
    var abortTimerId;
@@ -44,6 +47,10 @@ function MailAccount(settingsObj) {
    var requestTimer;
 
    var lists = {};
+   var isUnread = {};
+   for (var i in unread)
+      isUnread[unread[i]] = 1;
+   var authors = {};
 
    this.onUpdate;
    this.onError;
@@ -59,14 +66,15 @@ function MailAccount(settingsObj) {
       var foundNewMail = false;
       var parser = new DOMParser();
       xmlDocument = $(parser.parseFromString(data, "text/xml"));
-      var fullCount = xmlDocument.find('message[read="0"]').length;
-
+      var newLatest = xmlDocument.find('row').first().attr('messageID');
+      var unread = 0;
 
       mailTitle = xmlDocument.find('rowset').attr('name');//xmlDocument.find('message').attr("title");
       //newestMail = null;
       var newMailArray = new Array();
 
-      if (fullCount < unreadCount || unreadCount == -1) {
+      logToConsole("Latest so far was "+latestID+" new latest is "+newLatest);
+      if (newLatest > latestID || latestID == -1) {
          // Mail count has been reduced, so we need to reload all mail.
          // TODO: Find the old mail(s) and remove them instead.
          foundNewMail = true;
@@ -74,28 +82,46 @@ function MailAccount(settingsObj) {
       }
 
       // Parse xml data for each mail entry
-      xmlDocument.find('message[read="0"]').each(function () {
+      xmlDocument.find('row').each(function () {
          var title = $(this).attr('title');
 //         var summary = $(this).find('summary').text();
          var issued = $(this).attr('sentDate');
          issued = (new Date()).setISO8601(issued);
+         var shortTitle;
 //         var link = $(this).find('link').attr('href');
 //         var id = link.replace(/.*message_id=(\d\w*).*/, "$1");
          var id = $(this).attr('messageID');
+	 if (id <= latestID && !isUnread[id])
+	    return;
 
          var authorID = $(this).attr('senderID');
-	 var authorName;
+	 if (authorID == settingsObj.char) {	// You are the sender
+             var isRecipient = false;
+	     var recipients = $(this).attr('toCharacterIDs').split(',');
+             for (var i in recipients)
+		if (recipients[i] == settingsObj.char) {
+		    isRecipient = true;
+		    break;
+		}
+	     if (!isRecipient)
+		return;
+	 }
 
-         $.ajax({
-            type: "POST",
-            dataType: "text",
-            url: charNameURL,
-            data: "ids="+authorID,
-	    async: false,
-            timeout: requestTimeout,
-            success: function (data) { authorName = $(data).find("row[name]").attr("name"); },
-            error: function (xhr, status, err) { handleError(xhr, status, err); }
-         });
+	 var authorName = authors[authorID];
+
+         if (!authorName) {
+             $.ajax({
+                type: "POST",
+                dataType: "text",
+                url: charNameURL,
+                data: "ids="+authorID,
+                async: false,
+                timeout: requestTimeout,
+                success: function (data) { authorName = $(data).find("row[name]").attr("name"); },
+                error: function (xhr, status, err) { handleError(xhr, status, err); }
+             });
+             authors[authorID] = authorName;
+         }
 
 //         var authorMail = $(this).find('author').find('mail').text();
 
@@ -121,17 +147,11 @@ function MailAccount(settingsObj) {
 //            "authorMail": authorMail
          };
 
-         var isNewMail = true;
-         $.each(mailArray, function (i, oldMail) {
-            if (oldMail.id == mailObject.id)
-               isNewMail = false; // This mail is not new
-         });
-
-         if (isNewMail) {
-            foundNewMail = true;
-            newMailArray.push(mailObject);
-         }
+         newMailArray.push(mailObject);
+	 isUnread[id] = 1;
       });
+      latestID = newLatest;
+      localStorage["gc_latest_"+settingsObj.char] = latestID;
       
       // Sort new mail by date
       newMailArray.sort(function (a, b) {
@@ -162,8 +182,8 @@ function MailAccount(settingsObj) {
       });
 
       // We've found new mail, alert others!
-      if (foundNewMail) {
-         handleSuccess(fullCount);
+      if (foundNewMail || unreadCount == -1) {
+         handleSuccess(mailArray.length);
       } else {
          logToConsole(mailURL + " - No new mail found.");
       }
@@ -375,7 +395,7 @@ function MailAccount(settingsObj) {
                }
             }
          }
-         chrome.tabs.create({ url: mailURL + inboxLabel });
+         chrome.tabs.create({ url: gateURL + "Mail/Inbox" });
       });
    }
 
@@ -398,14 +418,14 @@ function MailAccount(settingsObj) {
                }
             }
          }
-         chrome.tabs.create({ url: mailURL + unreadLabel });
+         chrome.tabs.create({ url: gateURL + "Mail/Inbox" });
       });
    }
 
    // Opens a thread
    this.openThread = function (threadid) {
       if (threadid != null) {
-         chrome.tabs.create({ url: mailURL + inboxLabel + "/" + threadid });
+         chrome.tabs.create({ url: gateURL + "Mail/ReadMessage/" + threadid });
          postAction({ "threadid": threadid, "action": "rd" });
          scheduleRequest(1000);
       }
@@ -489,9 +509,12 @@ function MailAccount(settingsObj) {
 
    // Marks a thread as read
    this.readThread = function (threadid) {
+	logToConsole("Marking "+threadid+" as read");
+/*
       if (threadid != null) {
          postAction({ "threadid": threadid, "action": "rd" });
       }
+*/
    }
 
    // Marks a thread as read
