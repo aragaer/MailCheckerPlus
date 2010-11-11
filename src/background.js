@@ -57,7 +57,7 @@ function doAnimate() {
     canvasContext.clearRect(
         0,
         0,
-        canvas.width, 
+        canvas.width,
         canvas.height);
     canvasContext.translate(
         Math.ceil(canvas.width / 2),
@@ -78,9 +78,9 @@ function doAnimate() {
 
     chrome.browserAction.setIcon({
         imageData: canvasContext.getImageData(
-            0, 
             0,
-            canvas.width, 
+            0,
+            canvas.width,
             canvas.height)
     });
 }
@@ -142,8 +142,8 @@ function reloadSettings() {
     }
 
     if (localStorage["gc_version"] == null ||
-        localStorage["gc_version"] != "1.1.8") {
-        localStorage["gc_version"] = "1.1.8";
+        localStorage["gc_version"] != "1.2") {
+      localStorage["gc_version"] = "1.2";
         chrome.tabs.create({ url: "about.html" });
     }
 
@@ -164,8 +164,8 @@ function reloadSettings() {
             url: "https://www.google.com/accounts/AddSession",
             success: function (data) {
                 // Multiple accounts active
-                var matches = data.match(/<li>([\s\S]*?)<\/li>/ig);
-                //console.log(matches);
+            var matches = data.match(/<li>([\S]+?@[\S]+)[<|\S]/ig);
+            console.log(matches);
 
                 if (matches != null && matches.length > 0) {
                     for (var n = 0; n < matches.length; n++) {
@@ -297,7 +297,7 @@ function playSound() {
         return;
 
     try {
-//        document.getElementById('notify_sound').load();
+      //        document.getElementById('notify_sound').load();
         document.getElementById('notify_sound').play();
     }
     catch (e) {

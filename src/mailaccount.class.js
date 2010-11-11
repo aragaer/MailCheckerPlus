@@ -85,21 +85,21 @@ function MailAccount(settingsObj) {
          var issued = $(this).attr('sentDate');
          issued = (new Date()).setISO8601(issued);
          var id = $(this).attr('messageID');
-	 if (id <= latestID && !isUnread[id])
-	    return;
+         if (id <= latestID && !isUnread[id])
+             return;
 
          var authorID = $(this).attr('senderID');
-	 if (authorID == settingsObj.char) {	// You are the sender
+         if (authorID == settingsObj.char) {	// You are the sender
              var isRecipient = false;
-	     var recipients = $(this).attr('toCharacterIDs').split(',');
+             var recipients = $(this).attr('toCharacterIDs').split(',');
              for (var i in recipients)
-		if (recipients[i] == settingsObj.char) {
-		    isRecipient = true;
-		    break;
-		}
-	     if (!isRecipient)
-		return;
-	 }
+                 if (recipients[i] == settingsObj.char) {
+                     isRecipient = true;
+             break;
+         }
+         if (!isRecipient)
+             return;
+     }
 
 	 var authorName;
 
@@ -108,13 +108,13 @@ function MailAccount(settingsObj) {
             dataType: "text",
             url: charNameURL,
             data: "ids="+authorID,
-	    async: false,
+            async: false,
             timeout: requestTimeout,
             success: function (data) { authorName = $(data).find("row[name]").attr("name"); },
             error: function (xhr, status, err) { handleError(xhr, status, err); }
          });
 
-//         var authorMail = $(this).find('author').find('mail').text();
+//       var authorMail = $(this).find('author').find('mail').text();
 
          // Data checks
          if (authorName == null || authorName.length < 1)
@@ -134,7 +134,7 @@ function MailAccount(settingsObj) {
          };
 
          newMailArray.push(mailObject);
-	 isUnread[id] = 1;
+      isUnread[id] = 1;
       });
       latestID = newLatest;
       localStorage["gc_latest_"+settingsObj.char] = latestID;
@@ -380,7 +380,7 @@ function MailAccount(settingsObj) {
                }
             }
          }
-         chrome.tabs.create({ url: gateUrl + "Mail/Inbox" });
+         chrome.tabs.create({ url: gateURL + "Mail/Inbox" });
       });
    }
 
@@ -418,11 +418,15 @@ function MailAccount(settingsObj) {
    // Fetches content of thread
    this.getThread = function (accountid, threadid, callback) {
       if (threadid != null) {
-         var getURL = mailURL + "h/" + Math.ceil(1000000 * Math.random()) + "/?v=pt&th=" + threadid;
+         var getURL = mailURL.replace('http:', 'https:') + "h/" + Math.ceil(1000000 * Math.random()) + "/?v=pt&th=" + threadid;
          var gt_xhr = new XMLHttpRequest();
          gt_xhr.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-               //that.readThread(threadid);
+//               var markAsRead = (localStorage["gc_showfull_read"] != null && localStorage["gc_showfull_read"] == "true");
+
+//               if(markAsRead)
+//                  that.readThread(threadid);
+
                var matches = this.responseText.match(/<hr>[\s\S]?<table[^>]*>([\s\S]*?)<\/table>(?=[\s\S]?<hr>)/gi);
                //var matches = matchRecursiveRegExp(this.responseText, "<div class=[\"]?msg[\"]?>", "</div>", "gi")
                //logToConsole(this.responseText);
@@ -639,10 +643,11 @@ function MailAccount(settingsObj) {
       subject = (subject.search(/^Re: /i) > -1) ? subject : "Re: " + subject; // Add 'Re: ' if not already there
       subject = encodeURIComponent(subject);
       // threadbody = encodeURIComponent(threadbody);
-      var issued = (new Date()).setISO8601(mail.issued);
+      var issued = mail.issued;
       var threadbody = "\r\n\r\n" + issued.toString() + " <" + mail.authorMail + ">:\r\n" + mail.summary;
       threadbody = encodeURIComponent(threadbody);
-      var replyURL = mailURL + "?view=cm&fs=1&tf=1&to=" + to + "&su=" + subject + "&body=" + threadbody;
+      var replyURL = mailURL.replace('http:', 'https:') + "?view=cm&tf=1&to=" + to + "&su=" + subject + "&body=" + threadbody;
+      logToConsole(replyURL);
       if (openInTab) {
          chrome.tabs.create({ url: replyURL });
       } else {
