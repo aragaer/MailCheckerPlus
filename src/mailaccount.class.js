@@ -85,8 +85,11 @@ function MailAccount(settingsObj) {
          var issued = $(this).attr('sentDate');
          issued = (new Date()).setISO8601(issued);
          var id = $(this).attr('messageID');
-         if (id <= latestID && !isUnread[id])
+         if (id <= latestID)
              return;
+
+	 if (latestID == -1 && !isUnread[id])
+	     return;
 
          var authorID = $(this).attr('senderID');
          if (authorID == settingsObj.char) {	// You are the sender
@@ -95,11 +98,11 @@ function MailAccount(settingsObj) {
              for (var i in recipients)
                  if (recipients[i] == settingsObj.char) {
                      isRecipient = true;
-             break;
+                     break;
+                 }
+                 if (!isRecipient)
+                     return;
          }
-         if (!isRecipient)
-             return;
-     }
 
 	 var authorName;
 
@@ -134,7 +137,7 @@ function MailAccount(settingsObj) {
          };
 
          newMailArray.push(mailObject);
-      isUnread[id] = 1;
+         isUnread[id] = 1;
       });
       latestID = newLatest;
       localStorage["gc_latest_"+settingsObj.char] = latestID;
