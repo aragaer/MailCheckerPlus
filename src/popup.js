@@ -1,4 +1,4 @@
-﻿/// <reference path="jquery-1.4.2.js" />
+/// <reference path="jquery-1.4.2.js" />
 /// <reference path="chrome-api-vsdoc.js" />
 
 var backgroundPage = chrome.extension.getBackgroundPage();
@@ -8,6 +8,24 @@ var mailCount = 0;
 var mailCache = new Array();
 var allMail;
 var scrollbar;
+
+var unreadCount = 0;
+allMail = new Array();
+$.each(mailAccounts, function (i, account) {
+   unreadCount += account.getUnreadCount();
+});
+
+var previewSetting = localStorage["gc_preview_setting"];
+
+if (previewSetting == "0") {
+   // Preview setting set to "Always off" =
+   // Go to first mail inbox with unread items
+   openInbox(0);
+} else if (previewSetting == "1" && unreadCount == 0) {
+   // Preview setting set to "Automatic" + no unread mail =
+   // Go to first mail inbox
+   openInbox(0);
+}
 
 function hideElement(id) {
    var element = document.getElementById(id);
@@ -25,44 +43,50 @@ function showElement(id) {
 
 // Opens a mail and closes this window
 function openMail(accountId, mailid) {
-   window.close();
    mailAccounts[accountId].openThread(mailid);
+   window.close();
 }
 
 function openInbox(accountId) {
-   window.close();
    if (accountId == null) {
+      accountId = 0;
       // Open first inbox with unread items
       $.each(mailAccounts, function (i, account) {
          if (account.getUnreadCount() > 0) {
-            account.openInbox();
+            accountId = account.id;
             return false;
          }
       });
-      accountId = 0;
    }
+
+   if(mailAccounts == null || mailAccounts[accountId] == null) {
+      console.error("No mailaccount(s) found with account id " + accountId);
+      return;
+   }
+
    mailAccounts[accountId].openInbox();
+   window.close();
 }
 
 function openUnread(accountId) {
-   window.close();
    mailAccounts[accountId].openUnread();
+   window.close();
 }
 
 function composeNew(accountId) {
-   window.close();
    mailAccounts[accountId].composeNew();
+   window.close();
 }
 
 function sendPage(accountId) {
    chrome.tabs.getSelected(null, function (tab) {
-      window.close();
       mailAccounts[accountId].sendPage(tab);
+      window.close();
    });
 }
 
-function readThread(accountId, mailid) {
-   hideMail(accountId, mailid);
+function readThread(accountId, mailid, stayOpen) {
+   hideMail(accountId, mailid, stayOpen);
    mailAccounts[accountId].readThread(mailid);
 }
 
@@ -123,7 +147,7 @@ function getThread(accountId, mailid) {
 
    var markAsRead = (localStorage["gc_showfull_read"] != null && localStorage["gc_showfull_read"] == "true");
    if (markAsRead) {
-      readThread(accountId, mailid);
+	  readThread(accountId, mailid, true);
    }
 
    if (mailCache[mailid] != null) {
@@ -155,11 +179,12 @@ function showBody(accountid, mailid, mailbody) {
       var mail = allMail[mailid];
 
       var fullscreenContainer = $("#fullscreenContainer");
+      var fullscreenContent = $("#fullscreenContent");
       var fullscreenControl = $("#fullscreenControls");
 
 
-      fullscreenControl.find('.openLink').text(mail.title);
-      fullscreenControl.find('.openLink').attr('title', i18n.get('openLinkTitle'));
+      fullscreenControl.find('.openLink').text(mail.shortTitle);
+      fullscreenControl.find('.openLink').attr('title', mail.title);
       fullscreenControl.find('.authorLink').text(mail.authorName);
       fullscreenControl.find('.authorLink').attr('title', mail.authorMail);
       fullscreenControl.find('.issuedLink').text(formatDateTime(mail.issued, i18n.selected_lang.months, true));
@@ -177,46 +202,41 @@ function showBody(accountid, mailid, mailbody) {
       fullscreenControl.find('.archiveLink').attr('title', i18n.get('archiveLinkTitle'));
 
       // Insert the full mail body and full screen controls
-      fullscreenContainer.html("");
-      fullscreenContainer.append(fullscreenControl);
-      fullscreenContainer.append(mailbody);
+      fullscreenContent.empty();
+      fullscreenContent.html(mailbody);
 
-      // Remove previous click event handlers
-      fullscreenControl.find('.closeLink').unbind();
+      fullscreenContainer.empty();
+      fullscreenContainer.append(fullscreenControl);
+      fullscreenContainer.append(fullscreenContent);
+
+      // Set event handlers
       fullscreenControl.find('.closeLink').click(function () {
          setTimeout(hideBody(), 0);
       });
-      fullscreenControl.find('.readLink').unbind();
       fullscreenControl.find('.readLink').click(function () {
          readThread(accountid, mailid);
          setTimeout(hideBody(), 0);
       });
-      fullscreenControl.find('.replyLink').unbind();
       fullscreenControl.find('.replyLink').click(function () {
          replyTo(accountid, mailid);
          setTimeout(hideBody(), 0);
       });
-      fullscreenControl.find('.deleteLink').unbind();
       fullscreenControl.find('.deleteLink').click(function () {
          deleteThread(accountid, mailid);
          setTimeout(hideBody(), 0);
       });
-      fullscreenControl.find('.spamLink').unbind();
       fullscreenControl.find('.spamLink').click(function () {
          spamThread(accountid, mailid);
          setTimeout(hideBody(), 0);
       });
-      fullscreenControl.find('.archiveLink').unbind();
       fullscreenControl.find('.archiveLink').click(function () {
          archiveThread(accountid, mailid);
          setTimeout(hideBody(), 0);
       });
-      fullscreenControl.find('.openLink').unbind();
       fullscreenControl.find('.openLink').click(function () {
          openMail(accountid, mailid);
          setTimeout(hideBody(), 0);
       });
-      fullscreenControl.find('.starLink').unbind();
       fullscreenControl.find('.starLink').click(function () {
          $(this).css('opacity', '1');
          starThread(accountid, mailid);
@@ -249,16 +269,21 @@ function hideBody() {
 }
 
 // Hides a mail in the mailbox
-function hideMail(accountId, mailid) {
+function hideMail(accountId, mailid, stayOpen) {
    var accountElement = $('#inbox_' + accountId);
-   $('#' + mailid).slideUp('fast');
-   $('#' + mailid).removeClass('mail');
+//   $('#' + mailid).slideUp('fast');
+//   $('#' + mailid).removeClass('mail');
+   $('#' + mailid).remove();
 
    var unreadCount = accountElement.find('.mail').length;
 
    if (unreadCount == 0) {
       accountElement.find('.toggleLink').hide('fast');
       accountElement.find('.unreadCount').fadeOut('fast');
+	
+	  if(!stayOpen) { 
+         window.close();
+	  }
    } else {
       accountElement.find('.unreadCount').text('(' + unreadCount + ')');
    }
@@ -289,7 +314,7 @@ function openOptions() {
 }
 
 function resizeWindow() {
-   var isExpanded = $('body').width() != 500;
+   var isExpanded = $('html').width() != 500;
 
    if (isExpanded)
       contractWindow();
@@ -298,25 +323,26 @@ function resizeWindow() {
 }
 
 
-var animationSpeed = 350;
+var animationSpeed = 250;
 var previousHeight;
 function expandWindow() {
    previousHeight = $('body').height();
 
-   $('body').animate({
+   $('html').animate({
       width: [750, 'swing'],
-      height: [500, 'swing']
+      //height: [500, 'swing']
    }, animationSpeed);
+
+   $('.account').slideUp();
 }
 
 function contractWindow() {
-   $('body').animate({
+   $('html').animate({
       width: [500, 'swing'],
-      height: [previousHeight, 'swing']
-   }, animationSpeed, function () {
-      $(this).height('auto');
-   });
+      //height: [previousHeight, 'swing']
+   }, animationSpeed);
 
+   $('.account').slideDown();
    previousHeight = 0;
 }
 
@@ -346,11 +372,7 @@ function renderMail() {
       if (account.getMail() != null) {
          $.each(account.getMail(), function (j, mail) {
             allMail[mail.id] = mail;
-
-            mail.fullTitle = mail.title;
-            if (mail.title.length > 63)
-               mail.title = mail.title.substr(0, 60) + "...";
-
+            
             // Render mail
             var mailHtml = parseTemplate($("#MailTemplate").html(), {
                account: account,
@@ -382,10 +404,10 @@ function renderMail() {
       inboxElement.find(".spamLink").click(function () { spamThread(account.id, $(this).attr('mailId')); });
       inboxElement.find(".archiveLink").click(function () { archiveThread(account.id, $(this).attr('mailId')); });
       inboxElement.find(".fullLink").click(function () { getThread(account.id, $(this).attr('mailId')); });
+      inboxElement.find(".summary").click(function () { getThread(account.id, $(this).attr('mailId')); });
       inboxElement.find(".replyLink").click(function () { replyTo(account.id, $(this).attr('mailId')); });
       inboxElement.find(".openLink").click(function () { openMail(account.id, $(this).attr('mailId')); });
-
-
+      
       inboxElement.find(".starLink").click(function () {
          $(this).css('opacity', '1');
          starThread(account.id, $(this).attr('mailId'));
@@ -406,31 +428,11 @@ $(document).ready(function () {
       unreadCount += account.getUnreadCount();
    });
 
-   var previewSetting = localStorage["gc_preview_setting"];
+   backgroundPage.stopAnimateLoop();
 
-   if (previewSetting == "0") {
-      // Preview setting set to "Always off" =
-      // Go to first mail inbox with unread items
-      openInbox();
-   }
-   if (previewSetting == "1" && unreadCount == 0) {
-      // Preview setting set to "Automatic" + no unread mail =
-      // Go to first mail inbox
-      openInbox(0);
-      //   } else if (previewSetting == "2" && unreadCount == -1) {
-      //      // Preview setting set to "Always on" + no mail found =
-      //      // Display an error text
-      //      $('#content').html("<br /><h3>Error</h3><p>No active account was found</p>" +
-      //		    "<p><a href='https://mail.google.com/' target='_blank' title='Log in to Gmail'>Log in to Gmail</a></p>");
-      //      $('#content').width(300);
-      //      $('#content').css({ "textAlign": "center", "fontSize": "80%" });
-   } else {
-      backgroundPage.stopAnimateLoop();
+   renderMail();
 
-      renderMail();
-
-      // Should probably use jQuery for this
-      document.getElementById('refresh').setAttribute('title', i18n.get('refreshLinkTitle'));
-      document.getElementById('options').setAttribute('title', i18n.get('optionsLinkTitle'));
-   }
+   // Should probably use jQuery for this
+   document.getElementById('refresh').setAttribute('title', i18n.get('refreshLinkTitle'));
+   document.getElementById('options').setAttribute('title', i18n.get('optionsLinkTitle'));
 });

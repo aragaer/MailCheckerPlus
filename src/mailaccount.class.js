@@ -29,9 +29,23 @@ function MailAccount(settingsObj) {
    var apiKey = settingsObj.key;
    var charID = settingsObj.char;
 
-   var inboxLabel;
-   var atomLabel;
-   var unreadLabel;
+   var inboxLabel = "#inbox";
+   var unreadLabel = "#inbox";
+   var atomLabel = "";
+
+   if (localStorage["gc_check_all"] != null
+        && localStorage["gc_check_all"] == "true") {
+      // Check all labels for unread mail
+      inboxLabel = "#all";
+      unreadLabel = "#search/l:unread";
+      atomLabel = "unread";
+   } else if (localStorage["gc_check_priority"] != null
+        && localStorage["gc_check_priority"] == "true"
+        && settingsObj.domain == null) {
+      // Only check priority inbox
+      atomLabel = "important";
+      inboxLabel = unreadLabel = "#mbox";
+   }
 
    var mailArray = new Array();
    var newestMail;
@@ -39,6 +53,7 @@ function MailAccount(settingsObj) {
    var latestID = localStorage["gc_latest_"+settingsObj.char] || -1;
    var unread = (localStorage["gc_unread_"+settingsObj.char] || "").split(',');
    var mailTitle;
+   var mailAddress;
    var abortTimerId;
    var gmailAt = null;
    var errorLives = 5;
@@ -62,11 +77,13 @@ function MailAccount(settingsObj) {
    
    function onGetInboxSuccess(data) {
       var foundNewMail = false;
-      var xmlDocument = $(data);
+      var parser = new DOMParser();
+      xmlDocument = $(parser.parseFromString(data, "text/xml"));
       var newLatest = xmlDocument.find('row').first().attr('messageID');
       var unread = 0;
 
-      mailTitle = xmlDocument.find('rowset').attr('name');//xmlDocument.find('message').attr("title");
+      mailTitle = $(xmlDocument.find('title')[0]).text().replace("Gmail - ", "");
+
       //newestMail = null;
       var newMailArray = new Array();
 
@@ -81,6 +98,7 @@ function MailAccount(settingsObj) {
       // Parse xml data for each mail entry
       xmlDocument.find('row').each(function () {
          var title = $(this).attr('title');
+         var shortTitle = title;
 //         var summary = $(this).find('summary').text();
          var issued = $(this).attr('sentDate');
          issued = (new Date()).setISO8601(issued);
@@ -122,13 +140,18 @@ function MailAccount(settingsObj) {
          // Data checks
          if (authorName == null || authorName.length < 1)
             authorName = "(unknown sender)";
-         if (title == null || title.length < 1)
-            title = "(No subject)";
+
+         if (title == null || title.length < 1) {
+            shortTitle = title = "(No subject)";
+         } else if (title.length > 63) {
+            shortTitle = title.substr(0, 60) + "...";
+         }
 
          // Construct a new mail object
          var mailObject = {
             "id": id,
             "title": title,
+            "shortTitle": shortTitle,
 //            "summary": summary,
 //            "link": link,
             "issued": issued,
@@ -367,6 +390,7 @@ function MailAccount(settingsObj) {
    // Opens the inbox
    this.openInbox = function () {
       // See if there is any Gmail tab open	
+      logToConsole('Opening inbox');
       chrome.windows.getAll({ populate: true }, function (windows) {
          for (var w in windows) {
             for (var i in windows[w].tabs) {
@@ -556,6 +580,13 @@ function MailAccount(settingsObj) {
       return mailURL;
    }
 
+   // Returns the email address for the current account
+   this.getAddress = function () {
+      if (mailAddress != null && mailAddress != "")
+         return mailAddress;
+      return "(unknown account)";
+   }
+
    // Returns the mail array
    this.getMail = function () {
       return mailArray;
@@ -598,6 +629,13 @@ function MailAccount(settingsObj) {
    this.archiveNewestMail = function () {
       if (newestMail != null) {
          that.archiveThread(newestMail.id);
+      }
+   }
+
+   // Stars the newest thread
+   this.starNewestMail = function () {
+      if (newestMail != null) {
+         that.starThread(newestMail.id);
       }
    }
 
