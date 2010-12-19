@@ -160,6 +160,7 @@ function reloadSettings() {
    chrome.browserAction.setBadgeText({ text: "..." });
    chrome.browserAction.setTitle({ title: "Polling accounts..." });
 
+/*
    if (localStorage["gc_check_gmail_off"] == null ||
         localStorage["gc_check_gmail_off"] == "false") {
       // Check if user has enabled multiple sessions
@@ -193,7 +194,7 @@ function reloadSettings() {
             }
          }
       });
-   } else {
+   } else*/ {
       reloadSettings_complete();
    }
 }

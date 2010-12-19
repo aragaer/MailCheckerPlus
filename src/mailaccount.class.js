@@ -50,8 +50,9 @@ function MailAccount(settingsObj) {
    var mailArray = new Array();
    var newestMail;
    var unreadCount = -1;
-   var latestID = localStorage["gc_latest_"+settingsObj.char] || -1;
-   var unread = (localStorage["gc_unread_"+settingsObj.char] || "").split(',');
+   var firstUnreadID = localStorage["gc_first_unread_"+settingsObj.char] || -1;
+   var lastFetchedID = firstUnreadID - 1; // We must re-fetch all unread messages on the first run
+   var listOfRead = (localStorage["gc_read_"+settingsObj.char] || "").split(',');
    var mailTitle;
    var mailAddress;
    var abortTimerId;
@@ -61,9 +62,9 @@ function MailAccount(settingsObj) {
    var requestTimer;
 
    var lists = {};
-   var isUnread = {};
-   for (var i in unread)
-      isUnread[unread[i]] = 1;
+   var isRead = {};
+   for (var i in listOfRead)
+      isRead[listOfRead[i]] = 1;
 
    this.onUpdate;
    this.onError;
@@ -79,7 +80,13 @@ function MailAccount(settingsObj) {
       var foundNewMail = false;
       var parser = new DOMParser();
       xmlDocument = $(parser.parseFromString(data, "text/xml"));
-      var newLatest = xmlDocument.find('row').first().attr('messageID');
+
+      if (!xmlDocument.find('row').first()) // No mail at all
+         return;
+
+   logToConsole("firstUnread = ["+firstUnreadID+"], listOfRead=["+listOfRead.join(',')+"]");
+
+      var lastID = xmlDocument.find('row').first().attr('messageID');
       var unread = 0;
 
       mailTitle = $(xmlDocument.find('title')[0]).text().replace("Gmail - ", "");
@@ -87,13 +94,15 @@ function MailAccount(settingsObj) {
       //newestMail = null;
       var newMailArray = new Array();
 
-      logToConsole("Latest so far was "+latestID+" new latest is "+newLatest);
-      if (newLatest > latestID || latestID == -1) {
+//      if (lastID > lastFetchedID) {
          // Mail count has been reduced, so we need to reload all mail.
          // TODO: Find the old mail(s) and remove them instead.
-         foundNewMail = true;
-         mailArray = new Array();
-      }
+//         foundNewMail = true;
+//         mailArray = new Array();
+//      }
+
+      if (firstUnreadID == -1)
+         firstUnreadID = xmlDocument.find('row').last().attr('messageID');
 
       // Parse xml data for each mail entry
       xmlDocument.find('row').each(function () {
@@ -103,10 +112,10 @@ function MailAccount(settingsObj) {
          var issued = $(this).attr('sentDate');
          issued = (new Date()).setISO8601(issued);
          var id = $(this).attr('messageID');
-         if (id <= latestID)
-             return;
+         if (id <= lastFetchedID)
+            return;
 
-	 if (latestID == -1 && !isUnread[id])
+	 if (isRead[id])
 	     return;
 
          var authorID = $(this).attr('senderID');
@@ -118,8 +127,8 @@ function MailAccount(settingsObj) {
                      isRecipient = true;
                      break;
                  }
-                 if (!isRecipient)
-                     return;
+             if (!isRecipient)
+                 return;
          }
 
 	 var authorName;
@@ -160,10 +169,8 @@ function MailAccount(settingsObj) {
          };
 
          newMailArray.push(mailObject);
-         isUnread[id] = 1;
       });
-      latestID = newLatest;
-      localStorage["gc_latest_"+settingsObj.char] = latestID;
+      lastFetchedID = lastID;
       
       // Sort new mail by date
       newMailArray.sort(function (a, b) {
@@ -194,7 +201,7 @@ function MailAccount(settingsObj) {
       });
 
       // We've found new mail, alert others!
-      if (foundNewMail || unreadCount == -1) {
+      if (newMailArray.length > 0 || unreadCount == -1) {
          handleSuccess(mailArray.length);
       } else {
          logToConsole(mailURL + " - No new mail found.");
@@ -444,6 +451,8 @@ function MailAccount(settingsObj) {
    }
    // Fetches content of thread
    this.getThread = function (accountid, threadid, callback) {
+      logToConsole("getThread("+threadid+")");
+      return;
       if (threadid != null) {
          var getURL = mailURL.replace('http:', 'https:') + "h/" + Math.ceil(1000000 * Math.random()) + "/?v=pt&th=" + threadid;
          var gt_xhr = new XMLHttpRequest();
@@ -521,12 +530,34 @@ function MailAccount(settingsObj) {
 
    // Marks a thread as read
    this.readThread = function (threadid) {
-	logToConsole("Marking "+threadid+" as read");
-/*
-      if (threadid != null) {
-         postAction({ "threadid": threadid, "action": "rd" });
+      logToConsole("Marking "+threadid+" as read");
+      if (threadid == firstUnreadID) {
+         mailArray.pop();
+         if (mailArray.length) {
+            firstUnreadID = mailArray[mailArray.length - 1].id;
+            for (var i in isRead)
+                isRead[i] = i > firstUnreadID;
+         } else {
+            firstUnreadID = lastFetchedID;
+            isRead = {};
+            isRead[firstUnreadID] = 1;
+         }
+      } else {
+         isRead[threadid] = 1;
+         mailArray = mailArray.filter(function (mail) {
+            return mail.id != threadid;
+         });
       }
-*/
+
+      listOfRead = [];
+      for (var i in isRead)
+         if (i && isRead[i])
+            listOfRead.push(i);
+//      logToConsole("New read list = ["+listOfRead.join(',')+"]");
+      localStorage["gc_read_"+charID] = listOfRead.join(',');
+      localStorage["gc_first_unread_"+charID] = firstUnreadID;
+
+      handleSuccess(mailArray.length);
    }
 
    // Marks a thread as read
