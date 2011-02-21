@@ -14,7 +14,7 @@ String.prototype.htmlEntities = function () {
    return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
-var baseURL = "http://api.eveonline.com/";
+var baseURL = "https://api.eveonline.com/";
 var gateURL = "https://gate.eveonline.com/";
 
 function MailAccount(settingsObj) {
